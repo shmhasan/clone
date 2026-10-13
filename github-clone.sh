@@ -2,8 +2,12 @@
 
 set -uo pipefail
 
-GITHUB_USER="shmhasan"
+GITHUB_USER="${1:-}"
 REPO_LIMIT=1000
+
+if [ -z "$GITHUB_USER" ]; then
+    echo "You must provide your github username to continue"
+fi
 
 # Check required commands
 for cmd in gh git ssh; do
@@ -20,14 +24,14 @@ if ! gh auth status --hostname github.com >/dev/null 2>&1; then
     exit 1
 fi
 
-# ACTIVE_USER=$(gh api user --jq '.login') || exit 1
+ACTIVE_USER=$(gh api user --jq '.login') || exit 1
 
-# if [[ "$ACTIVE_USER" != "$GITHUB_USER" ]]; then
-#     echo "ERROR: GitHub CLI is using '$ACTIVE_USER', not '$GITHUB_USER'."
-#     echo "Switch accounts with:"
-#     echo "  gh auth switch --hostname github.com --user $GITHUB_USER"
-#     exit 1
-# fi
+if [[ "$ACTIVE_USER" != "$GITHUB_USER" ]]; then
+    echo "ERROR: GitHub CLI is using '$ACTIVE_USER', not '$GITHUB_USER'."
+    echo "Switch accounts with:"
+    echo "  gh auth switch --hostname github.com --user $GITHUB_USER"
+    exit 1
+fi
 
 # Use the default SSH configuration and key.
 echo "Checking your default GitHub SSH authentication..."
@@ -41,12 +45,12 @@ if [[ "$ssh_output" != *"successfully authenticated"* ]]; then
     exit 1
 fi
 
-# if [[ "$ssh_output" != *"as $GITHUB_USER"* ]]; then
-#     echo "ERROR: Your default SSH key is not authenticating as '$GITHUB_USER'."
-#     echo "Your GitHub CLI account is correct, but your SSH account differs."
-#     echo "Register the correct public key with '$GITHUB_USER' or configure SSH."
-#     exit 1
-# fi
+if [[ "$ssh_output" != *"$GITHUB_USER"* ]]; then
+    echo "ERROR: Your default SSH key is not authenticating as '$GITHUB_USER'."
+    echo "Your GitHub CLI account is correct, but your SSH account differs."
+    echo "Register the correct public key with '$GITHUB_USER' or configure SSH."
+    exit 1
+fi
 
 echo "Authenticated as $GITHUB_USER."
 echo
